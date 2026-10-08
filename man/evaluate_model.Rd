@@ -2,20 +2,21 @@
 % Please edit documentation in R/evaluate_model.R
 \name{evaluate_model}
 \alias{evaluate_model}
-\title{Evaluate a classification model on test data}
+\title{Évaluer un modèle sur des données de test}
 \usage{
 evaluate_model(model, test, target)
 }
 \arguments{
-\item{model}{A model from \code{\link[=fit_tree]{fit_tree()}} or \code{\link[=fit_forest]{fit_forest()}}.}
+\item{model}{Un modèle issu de \code{\link[=fit_tree]{fit_tree()}} ou \code{\link[=fit_forest]{fit_forest()}}.}
 
-\item{test}{Test data frame.}
+\item{test}{Data frame de test.}
 
-\item{target}{Name of the outcome column.}
+\item{target}{Nom de la variable cible.}
 }
 \value{
-A list with the confusion matrix and the accuracy.
+Classification : matrice de confusion et accuracy.
+Régression : RMSE, MAE et R².
 }
 \description{
-Evaluate a classification model on test data
+Évaluer un modèle sur des données de test
 }

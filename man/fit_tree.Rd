@@ -2,20 +2,20 @@
 % Please edit documentation in R/fit_tree.R
 \name{fit_tree}
 \alias{fit_tree}
-\title{Fit a classification decision tree}
+\title{Ajuster un arbre de décision (classification ou régression)}
 \usage{
 fit_tree(data, target, ...)
 }
 \arguments{
-\item{data}{A data frame.}
+\item{data}{Un data frame.}
 
-\item{target}{Name of the outcome column (must be a factor).}
+\item{target}{Nom de la variable cible.}
 
-\item{...}{Extra arguments passed to \code{\link[rpart:rpart]{rpart::rpart()}}.}
+\item{...}{Arguments passés à \code{\link[rpart:rpart]{rpart::rpart()}}.}
 }
 \value{
-An \code{rpart} model.
+Un modèle \code{rpart}.
 }
 \description{
-Fit a classification decision tree
+Classification si la cible est un facteur, régression si elle est numérique.
 }

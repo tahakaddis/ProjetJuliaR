@@ -1,18 +1,21 @@
-#' Fit a classification decision tree
+#' Ajuster un arbre de décision (classification ou régression)
 #'
-#' @param data A data frame.
-#' @param target Name of the outcome column (must be a factor).
-#' @param ... Extra arguments passed to [rpart::rpart()].
-#' @return An `rpart` model.
+#' Classification si la cible est un facteur, régression si elle est numérique.
+#'
+#' @param data Un data frame.
+#' @param target Nom de la variable cible.
+#' @param ... Arguments passés à [rpart::rpart()].
+#' @return Un modèle `rpart`.
 #' @export
 fit_tree <- function(data, target, ...) {
   f <- stats::as.formula(paste(target, "~ ."))
-  rpart::rpart(f, data = data, method = "class", model = TRUE, ...)
+  method <- if (is.factor(data[[target]])) "class" else "anova"
+  rpart::rpart(f, data = data, method = method, model = TRUE, ...)
 }
 
-#' Plot a decision tree
+#' Tracer un arbre de décision
 #'
-#' @param model An `rpart` model from [fit_tree()].
+#' @param model Un modèle `rpart` issu de [fit_tree()].
 #' @export
 plot_tree <- function(model) {
   rpart.plot::rpart.plot(model)
