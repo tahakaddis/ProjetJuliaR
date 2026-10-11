@@ -4,7 +4,14 @@
 \alias{cross_validate}
 \title{Validation croisée k-fold}
 \usage{
-cross_validate(data, target, fit_fun, k = 5, metric = NULL, seed = 123, ...)
+cross_validate(
+  data,
+  target,
+  fit_fun,
+  folds = make_folds(nrow(data)),
+  seed = 123,
+  ...
+)
 }
 \arguments{
 \item{data}{Un data frame.}
@@ -13,17 +20,14 @@ cross_validate(data, target, fit_fun, k = 5, metric = NULL, seed = 123, ...)
 
 \item{fit_fun}{Fonction d'ajustement, par ex. \link{fit_tree} ou \link{fit_forest}.}
 
-\item{k}{Nombre de plis.}
+\item{folds}{Plis, issus de \code{\link[=make_folds]{make_folds()}}.}
 
-\item{metric}{Métrique : par défaut \code{"accuracy"} (classification)
-ou \code{"rmse"} (régression) ; aussi \code{"mae"} ou \code{"r2"}.}
-
-\item{seed}{Graine aléatoire.}
+\item{seed}{Graine aléatoire (pour rpart et randomForest).}
 
 \item{...}{Arguments passés à \code{fit_fun}.}
 }
 \value{
-Un vecteur des valeurs par pli (moyenne et écart-type en attributs).
+Un data frame : une ligne par pli, une colonne par métrique.
 }
 \description{
 Validation croisée k-fold

@@ -11,11 +11,12 @@
 
 #' Cancer du sein - Coimbra (régression)
 #'
-#' Sous-ensemble de [coimbra] pour prédire la résistance à l'insuline.
-#' `Glucose` et `Insulin` sont exclus car HOMA en est calculé directement.
+#' Sous-ensemble de `coimbra` pour prédire le taux de leptine,
+#' une hormone produite par le tissu adipeux.
 #'
-#' @format Un data frame de 116 lignes et 7 colonnes : `Age`, `BMI`,
-#'   `Leptin`, `Adiponectin`, `Resistin`, `MCP1`, et `logHOMA` (log de HOMA).
+#' @format Un data frame de 116 lignes et 8 colonnes : `Age`, `BMI`,
+#'   `Glucose`, `Insulin`, `Adiponectin`, `Resistin`, `MCP1`, et
+#'   `logLeptin` (log du taux de leptine).
 #' @source Patrício et al. (2018), UCI Machine Learning Repository,
 #'   <https://archive.ics.uci.edu/dataset/451>.
 "coimbra_reg"

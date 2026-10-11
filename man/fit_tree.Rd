@@ -4,12 +4,14 @@
 \alias{fit_tree}
 \title{Ajuster un arbre de décision (classification ou régression)}
 \usage{
-fit_tree(data, target, ...)
+fit_tree(data, target, prune = TRUE, ...)
 }
 \arguments{
 \item{data}{Un data frame.}
 
 \item{target}{Nom de la variable cible.}
+
+\item{prune}{Élaguer l'arbre ? (\code{TRUE} par défaut)}
 
 \item{...}{Arguments passés à \code{\link[rpart:rpart]{rpart::rpart()}}.}
 }
@@ -17,5 +19,7 @@ fit_tree(data, target, ...)
 Un modèle \code{rpart}.
 }
 \description{
-Classification si la cible est un facteur, régression si elle est numérique.
+Classification si la cible est un facteur, régression si elle est
+numérique. Par défaut, l'arbre est élagué au paramètre de complexité
+(\code{cp}) qui minimise l'erreur de validation croisée interne de rpart.
 }

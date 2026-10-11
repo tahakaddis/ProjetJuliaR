@@ -14,9 +14,10 @@ evaluate_model(model, test, target)
 \item{target}{Nom de la variable cible.}
 }
 \value{
-Classification : matrice de confusion et accuracy.
-Régression : RMSE, MAE et R².
+Classification : matrice de confusion, accuracy, sensibilité,
+spécificité et AUC. Régression : RMSE, MAE et R².
 }
 \description{
-Évaluer un modèle sur des données de test
+Pour une classification binaire, la classe positive est le second
+niveau du facteur (ici "cancer").
 }

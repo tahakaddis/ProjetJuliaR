@@ -5,8 +5,9 @@
 \alias{coimbra_reg}
 \title{Cancer du sein - Coimbra (régression)}
 \format{
-Un data frame de 116 lignes et 7 colonnes : \code{Age}, \code{BMI},
-\code{Leptin}, \code{Adiponectin}, \code{Resistin}, \code{MCP1}, et \code{logHOMA} (log de HOMA).
+Un data frame de 116 lignes et 8 colonnes : \code{Age}, \code{BMI},
+\code{Glucose}, \code{Insulin}, \code{Adiponectin}, \code{Resistin}, \code{MCP1}, et
+\code{logLeptin} (log du taux de leptine).
 }
 \source{
 Patrício et al. (2018), UCI Machine Learning Repository,
@@ -16,7 +17,7 @@ Patrício et al. (2018), UCI Machine Learning Repository,
 coimbra_reg
 }
 \description{
-Sous-ensemble de \link{coimbra} pour prédire la résistance à l'insuline.
-\code{Glucose} et \code{Insulin} sont exclus car HOMA en est calculé directement.
+Sous-ensemble de \code{coimbra} pour prédire le taux de leptine,
+une hormone produite par le tissu adipeux.
 }
 \keyword{datasets}
