@@ -1,0 +1,288 @@
+---
+title: "Arbres de décision et forêts aléatoires implémentés en R"
+subtitle: "Cancer du sein : jeu de données Breast Cancer Coimbra"
+author: "Mohamed Taha Kaddis"
+lang: fr
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    embed-resources: true
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| code-fold: true
+library(ProjetJuliaR)
+
+# Plis de validation croisée communs à tous les modèles (et à la partie Julia)
+plis <- creer_plis(nrow(coimbra), k = 5, graine = 123)
+```
+
+# Objectif
+
+Le package `ProjetJuliaR` **implémente lui-même** l'algorithme CART
+(arbres de décision) et les forêts aléatoires, sans s'appuyer sur `rpart`
+ni `randomForest`. Il est organisé autour du système objet **S3** de R :
+des classes, des fonctions génériques et des méthodes sélectionnées par
+*dispatch*.
+
+Deux tâches sont traitées sur les 116 patientes du jeu Coimbra :
+
+| Tâche | Données | Cible | Variables explicatives |
+|---|---|---|---|
+| Classification | `coimbra` | `Classification` (sain / cancer) | 9 marqueurs sanguins |
+| Régression | `coimbra_reg` | `logLeptin` (log du taux de leptine) | 7 marqueurs (sans HOMA ni leptine) |
+
+# Architecture du package
+
+## Les classes
+
+Chaque modèle est une liste à laquelle on attribue un **vecteur de classes**.
+L'ordre de ce vecteur définit l'héritage : R cherche d'abord une méthode pour
+la première classe, puis pour la suivante, etc.
+
+```{r}
+arbre <- arbre_decision(Classification ~ ., data = coimbra)
+class(arbre)
+
+set.seed(123)
+foret <- foret_aleatoire(logLeptin ~ ., data = coimbra_reg, ntree = 100)
+class(foret)
+```
+
+| Niveau | Classes | Rôle |
+|---|---|---|
+| Algorithme | `arbre_decision`, `foret_aleatoire` | Ajustement, prédiction, affichage |
+| Tâche | `classification`, `regression` | Choix des métriques d'évaluation |
+| Parent commun | `modele_arbre` | Comportement partagé (affichage général, importance) |
+
+## Les fonctions génériques et le dispatch
+
+Le package définit quatre **fonctions génériques** (`UseMethod()`) et ajoute
+des méthodes à des génériques de base de R (`print`, `plot`, `predict`,
+`summary`, `as.data.frame`).
+
+| Générique | Méthodes | Dispatch sur |
+|---|---|---|
+| `arbre_decision()` | `.formula`, `.default` | le type du 1^er^ argument (formule ou données) |
+| `foret_aleatoire()` | `.formula`, `.default` | idem |
+| `predict()` | `.arbre_decision`, `.foret_aleatoire` | l'algorithme |
+| `evaluer()` | `.classification`, `.regression` | la tâche |
+| `importance()` | `.modele_arbre` | la classe parente (sert aux deux algorithmes) |
+| `print()` | `.modele_arbre`, `.arbre_decision`, `.foret_aleatoire`, `.metriques`… | l'algorithme, puis `NextMethod()` |
+| `plot()` | `.arbre_decision`, `.importance_variables` | l'objet affiché |
+
+```{r}
+methods(class = "arbre_decision")
+methods(class = "modele_arbre")
+methods("evaluer")
+```
+
+Un même appel déclenche plusieurs niveaux de dispatch. Par exemple,
+`evaluer(foret, coimbra_reg)` :
+
+1. dispatche sur la tâche et exécute `evaluer.regression()` ;
+2. qui appelle `predict()`, qui dispatche sur l'algorithme et exécute
+   `predict.foret_aleatoire()` ;
+3. et renvoie un objet `metriques_regression`, affiché par `print.metriques()`.
+
+```{r}
+evaluer(foret, coimbra_reg)
+```
+
+`print.arbre_decision()` illustre l'**héritage** avec `NextMethod()` : elle
+affiche le titre, délègue l'affichage commun à `print.modele_arbre()`, puis
+affiche la structure de l'arbre.
+
+## Les algorithmes
+
+**Arbre CART.** À chaque nœud, on cherche la coupure `x_j < s` qui
+minimise l'impureté des deux nœuds enfants :
+
+* classification : impureté de Gini $n \left(1 - \sum_k p_k^2\right)$ ;
+* régression : somme des carrés des résidus $\sum_i (y_i - \bar y)^2$.
+
+Pour chaque variable, les observations sont triées et **tous** les seuils
+sont évalués d'un coup grâce à des sommes cumulées (`cumsum`), ce qui donne
+une complexité en $O(n \log n)$ par variable. La croissance s'arrête avec
+`profondeur_max`, `min_noeud`, `min_feuille` et le paramètre de complexité
+`cp`.
+
+**Forêt aléatoire.** Chaque arbre est appris sur un échantillon *bootstrap*
+et ne considère que `mtry` variables tirées au hasard à chaque nœud. La
+prédiction est le vote majoritaire (classification) ou la moyenne
+(régression). Les observations hors du bootstrap (*out-of-bag*) donnent une
+estimation de l'erreur sans jeu de test.
+
+# Arbre de décision
+
+## Classification
+
+```{r}
+arbre_c <- arbre_decision(Classification ~ ., data = coimbra)
+arbre_c
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 5.5
+plot(arbre_c)
+```
+
+Réglage du paramètre de complexité `cp` par validation croisée (AUC) :
+
+```{r}
+reglage_cp_c <- regler(Classification ~ ., coimbra, arbre_decision,
+                       parametre = "cp", valeurs = c(0, 0.01, 0.02, 0.05, 0.1),
+                       plis = plis)
+reglage_cp_c
+cp_c <- attr(reglage_cp_c, "meilleure")
+```
+
+```{r}
+cv_arbre_c <- validation_croisee(Classification ~ ., coimbra, arbre_decision,
+                                 plis, cp = cp_c)
+cv_arbre_c
+```
+
+## Régression
+
+```{r}
+reglage_cp_r <- regler(logLeptin ~ ., coimbra_reg, arbre_decision,
+                       parametre = "cp", valeurs = c(0, 0.01, 0.02, 0.05, 0.1),
+                       plis = plis)
+reglage_cp_r
+cp_r <- attr(reglage_cp_r, "meilleure")
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 5
+arbre_r <- arbre_decision(logLeptin ~ ., data = coimbra_reg, cp = cp_r)
+arbre_r
+plot(arbre_r)
+```
+
+```{r}
+cv_arbre_r <- validation_croisee(logLeptin ~ ., coimbra_reg, arbre_decision,
+                                 plis, cp = cp_r)
+cv_arbre_r
+```
+
+# Forêt aléatoire
+
+## Classification
+
+Réglage de `mtry` (nombre de variables candidates à chaque nœud) :
+
+```{r}
+reglage_mtry_c <- regler(Classification ~ ., coimbra, foret_aleatoire,
+                         parametre = "mtry", valeurs = 1:9, plis = plis,
+                         ntree = 200)
+reglage_mtry_c
+mtry_c <- attr(reglage_mtry_c, "meilleure")
+```
+
+```{r}
+set.seed(123)
+foret_c <- foret_aleatoire(Classification ~ ., data = coimbra, mtry = mtry_c)
+foret_c
+plot(importance(foret_c), main = "Importance des variables (classification)")
+```
+
+## Régression
+
+```{r}
+reglage_mtry_r <- regler(logLeptin ~ ., coimbra_reg, foret_aleatoire,
+                         parametre = "mtry", valeurs = 1:7, plis = plis,
+                         ntree = 200)
+reglage_mtry_r
+mtry_r <- attr(reglage_mtry_r, "meilleure")
+```
+
+```{r}
+set.seed(123)
+foret_r <- foret_aleatoire(logLeptin ~ ., data = coimbra_reg, mtry = mtry_r)
+foret_r
+plot(importance(foret_r), main = "Importance des variables (régression)")
+```
+
+# Comparaison arbre / forêt
+
+Validation croisée à 5 plis (les mêmes pour tous les modèles), avec les
+paramètres réglés ci-dessus. Moyenne +/- écart-type sur les 5 plis.
+
+```{r}
+comp_c <- comparer_modeles(Classification ~ ., coimbra, plis,
+                           args_arbre = list(cp = cp_c),
+                           args_foret = list(mtry = mtry_c))
+knitr::kable(comp_c, caption = "Classification (classe positive : cancer)")
+```
+
+```{r}
+comp_r <- comparer_modeles(logLeptin ~ ., coimbra_reg, plis,
+                           args_arbre = list(cp = cp_r),
+                           args_foret = list(mtry = mtry_r))
+knitr::kable(comp_r, caption = "Régression (log de la leptine)")
+```
+
+```{r}
+#| code-fold: true
+moy <- function(cv, m) round(mean(cv[[m]]), 2)
+set.seed(123)
+cv_foret_c <- validation_croisee(Classification ~ ., coimbra, foret_aleatoire,
+                                 plis, mtry = mtry_c)
+cv_foret_r <- validation_croisee(logLeptin ~ ., coimbra_reg, foret_aleatoire,
+                                 plis, mtry = mtry_r)
+```
+
+En classification, la forêt atteint une AUC de `r moy(cv_foret_c, "auc")`
+contre `r moy(cv_arbre_c, "auc")` pour l'arbre, et détecte
+`r round(100 * mean(cv_foret_c$sensibilite))` % des cancers contre
+`r round(100 * mean(cv_arbre_c$sensibilite))` %. L'arbre reste en revanche
+lisible : sa première coupure sur le glucose sépare déjà la plupart des
+patientes. En régression, le R² passe de `r moy(cv_arbre_r, "r2")` (arbre)
+à `r moy(cv_foret_r, "r2")` (forêt), le BMI étant la variable la plus
+importante, ce qui est cohérent avec le rôle de la leptine, produite par le
+tissu adipeux.
+
+# Validation de l'implémentation
+
+Pour vérifier que l'implémentation est correcte, on la compare aux packages
+de référence `rpart` et `randomForest` (utilisés **uniquement** ici).
+
+```{r}
+#| eval: !expr requireNamespace("rpart", quietly = TRUE)
+ref <- rpart::rpart(Classification ~ ., data = coimbra)
+data.frame(
+  implementation = c("ProjetJuliaR", "rpart"),
+  premiere_variable = c(arbre_c$racine$variable, as.character(ref$frame$var[1])),
+  premier_seuil = c(arbre_c$racine$seuil, ref$splits[1, "index"])
+)
+```
+
+```{r}
+#| eval: !expr requireNamespace("randomForest", quietly = TRUE)
+set.seed(123)
+rf_c <- randomForest::randomForest(Classification ~ ., data = coimbra, mtry = mtry_c)
+set.seed(123)
+rf_r <- randomForest::randomForest(logLeptin ~ ., data = coimbra_reg, mtry = mtry_r)
+data.frame(
+  implementation = c("ProjetJuliaR", "randomForest"),
+  erreur_oob_classification = c(foret_c$erreur_oob, rf_c$err.rate[rf_c$ntree, "OOB"]),
+  mse_oob_regression = c(foret_r$erreur_oob, rf_r$mse[rf_r$ntree])
+)
+```
+
+Les coupures de l'arbre coïncident avec celles de `rpart`, et les erreurs
+*out-of-bag* de la forêt sont du même ordre que celles de `randomForest`
+(les écarts viennent du hasard du bootstrap et de détails d'implémentation).
+

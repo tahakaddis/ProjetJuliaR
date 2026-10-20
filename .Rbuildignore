@@ -1,4 +1,5 @@
-^ProjetJuliaR\.Rproj$
-^\.Rproj\.user$
-^LICENSE\.md$
 ^data-raw$
+^.*\.Rproj$
+^\.Rproj\.user$
+^rapport$
+^LICENSE\.md$
