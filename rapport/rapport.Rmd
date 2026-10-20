@@ -1,0 +1,39 @@
+# Arbres de décision et forêts aléatoires appliqués à la santé -- R
+
+------------------------------------------------------------------------
+
+## Contexte
+
+Les arbres de décision et les forêts aléatoires Random Forests sont des méthodes d'apprentissage supervisé très utilisées en santé. Un arbre de décision prédit en posant une série de questions sur les données, étape par étape. Une forêt aléatoire combine plusieurs arbres entraînés sur des échantillons différents (bootstrap) et agrège leurs prédictions, ce qui la rend en général plus robuste.
+
+## Problématique
+
+Dans quelle mesure les arbres de décision et les forêts aléatoires permettent-ils d'identifier les facteurs associés au statut diabétique et de prédire le risque de cancer du sein à partir de caractéristiques individuelles de santé ?
+
+## Données
+
+Nous utilisons le jeu de données **Breast Cancer Coimbra** UCI Machine Learning Repository, qui contient des mesures cliniques : âge, IMC, glucose, insuline, indice HOMA, leptine, adiponectine, mevisatine/résistine et MCP-1. Pour que les résultats de R et de Julia soient comparables, les deux parties partent des mêmes fichiers :
+
+- `coimbra_clean.csv` : classification (personne saine ou patiente) ;
+- `coimbra_reg.csv` : régression, avec comme variable à prédire `logLeptin`, le logarithme du taux de leptine ;
+- `folds.csv` : découpage en 5 plis pour la validation croisée.
+
+## Démarche & Outils R
+
+1.  **Arbre de décision** : approche classification (via `rpart` ou `partykit`), puis régression.
+2.  **Forêt aléatoire** : approche classification (via `randomForest` ou `ranger`), puis régression.
+3.  **Comparaison & Validations** :
+    - Exploitation exacte du découpage en 5 plis (`folds.csv`) afin d'assurer une comparaison stricte des performances entre R et Julia.
+    - Pour la classification : évaluation de l'**accuracy**, de la **sensibilité**, de la **spécificité** et de l'**AUC** (classe positive : « cancer »).
+    - Pour la régression : évaluation du **RMSE**, du **MAE** et du $R^2$ (moyennés sur les 5 plis).
+
+------------------------------------------------------------------------
+
+# Journal de bord et évolution du projet
+
+------------------------------------------------------------------------
+
+
+## Arbres de décision
+
+## Forêts aléatoires

@@ -1,0 +1,110 @@
+---
+title: "Arbres de décision et forêts aléatoires : cancer du sein (Coimbra)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{analyse}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                      fig.width = 7, fig.height = 4.5)
+```
+
+```{r setup}
+library(ProjetJuliaR)
+
+# Mêmes plis de validation croisée pour tous les modèles (et pour Julia)
+folds <- make_folds(nrow(coimbra), k = 5, seed = 123)
+```
+
+## Données
+
+- **Classification** : `coimbra`, cible `Classification` (sain / cancer).
+- **Régression** : `coimbra_reg`, cible `logLeptin` (log du taux de leptine).
+
+```{r}
+table(coimbra$Classification)
+summary(coimbra_reg$logLeptin)
+```
+
+# I. Arbre de décision
+
+## I.1 Approche classification
+
+```{r}
+set.seed(123)
+tree_c <- fit_tree(coimbra, "Classification")
+plot_tree(tree_c)
+```
+
+```{r}
+cv_tree_c <- cross_validate(coimbra, "Classification", fit_tree, folds)
+cv_tree_c
+colMeans(cv_tree_c)
+```
+
+## I.2 Approche régression
+
+```{r}
+set.seed(123)
+tree_r <- fit_tree(coimbra_reg, "logLeptin")
+plot_tree(tree_r)
+```
+
+```{r}
+cv_tree_r <- cross_validate(coimbra_reg, "logLeptin", fit_tree, folds)
+cv_tree_r
+colMeans(cv_tree_r)
+```
+
+# II. Forêt aléatoire
+
+## II.1 Approche classification
+
+Choix de `mtry` (nombre de variables tirées à chaque nœud) :
+
+```{r}
+tune_c <- tune_forest(coimbra, "Classification", mtry_values = 1:9, folds = folds)
+tune_c
+mtry_c <- tune_c$mtry[which.max(tune_c$score)]   # AUC la plus haute
+mtry_c
+```
+
+```{r}
+set.seed(123)
+rf_c <- fit_forest(coimbra, "Classification", mtry = mtry_c)
+rf_c
+randomForest::varImpPlot(rf_c, main = "Importance des variables (classification)")
+```
+
+## II.2 Approche régression
+
+```{r}
+tune_r <- tune_forest(coimbra_reg, "logLeptin", mtry_values = 1:7, folds = folds)
+tune_r
+mtry_r <- tune_r$mtry[which.min(tune_r$score)]   # RMSE la plus basse
+mtry_r
+```
+
+```{r}
+set.seed(123)
+rf_r <- fit_forest(coimbra_reg, "logLeptin", mtry = mtry_r)
+rf_r
+randomForest::varImpPlot(rf_r, main = "Importance des variables (régression)")
+```
+
+# III. Comparaison arbre / forêt
+
+Moyenne +/- écart-type sur les 5 plis.
+
+```{r}
+knitr::kable(compare_models(coimbra, "Classification", folds, mtry = mtry_c),
+             caption = "Classification (sain / cancer)")
+```
+
+```{r}
+knitr::kable(compare_models(coimbra_reg, "logLeptin", folds, mtry = mtry_r),
+             caption = "Régression (log de la leptine)")
+```

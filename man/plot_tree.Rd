@@ -2,13 +2,13 @@
 % Please edit documentation in R/fit_tree.R
 \name{plot_tree}
 \alias{plot_tree}
-\title{Plot a decision tree}
+\title{Tracer un arbre de décision}
 \usage{
 plot_tree(model)
 }
 \arguments{
-\item{model}{An \code{rpart} model from \code{\link[=fit_tree]{fit_tree()}}.}
+\item{model}{Un modèle \code{rpart} issu de \code{\link[=fit_tree]{fit_tree()}}.}
 }
 \description{
-Plot a decision tree
+Tracer un arbre de décision
 }
